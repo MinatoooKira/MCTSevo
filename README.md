@@ -99,8 +99,8 @@ The following figures come from a 9-round **in silico** campaign where the `fitn
   <img src="assets/esm1v_vs_fitness.png" alt="ESM-1v score vs predicted fitness" width="60%">
 </p>
 
-- ESM-1v additive LLR correlates well with the proxy fitness (R² ≈ 0.64), showing that ESM-1v gives a reliable prior for which mutations are promising.
-- In Rounds 0–1, even before any real wet-lab measurements, ESM-1v alone is enough to propose useful candidates and bootstrap the active-learning loop.
+- ESM-1v additive LLR has a **moderate** correlation with the proxy fitness (R² ≈ 0.64 in this run): it is far from perfect, but good enough to act as a directional prior rather than a final objective.
+- In Rounds 0–1, even before any real wet-lab measurements, ESM-1v steers MCTS toward promising regions of sequence space. From Round 1 onward, however, the heavy lifting is done by **MCTS + GPR**: the search policy is updated from experimental data, and ESM-1v gradually becomes just a weak prior instead of the main decision signal.
 
 ## How it works
 
