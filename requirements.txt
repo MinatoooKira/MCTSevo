@@ -1,0 +1,7 @@
+torch>=2.0
+fair-esm
+scikit-learn
+matplotlib
+seaborn
+numpy
+pandas
