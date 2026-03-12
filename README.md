@@ -44,6 +44,64 @@ MCTSevo addresses this directly — it **evaluates full mutation combinations as
 
 - **Runs anywhere.** Apple Silicon (MPS), NVIDIA GPU (CUDA), or CPU. No cloud API, no cluster, no pre-computed embeddings. Just `pip install` and go.
 
+## Example: 9-round in silico campaign
+
+The following figures come from a 9-round **in silico** campaign where the `fitness` column was filled with scores from a Tranception-like model (as a proxy for wet-lab measurements). The workflow is identical to real experiments — once you have actual assay data, simply overwrite the `fitness` column and rerun.
+
+### 1. Fitness improves steadily with rounds
+
+<p align="center">
+  <img src="assets/fitness_over_rounds.png" alt="Fitness over rounds" width="80%">
+</p>
+
+- **Best predicted fitness** rises from ~0.065 in Round 0 to ~0.086 in Round 8.
+- **Mean predicted fitness** grows from ~0.015 to ~0.075（约 5 倍提升）, showing that the model lifts the whole distribution, not just a single lucky hit.
+
+### 2. Distribution shift: from noisy low-values to consistently high-values
+
+<p align="center">
+  <img src="assets/fitness_distribution.png" alt="Fitness distribution per round" width="80%">
+</p>
+
+- Blue boxes (R0–R5, standard MCTS) are wide and low, with many sequences near zero.
+- Red boxes (R7–R8, Progressive Widening + depth quotas) are higher and tighter, indicating that MCTSevo consistently proposes higher-quality multi-mutation sequences.
+
+### 3. MCTS + Progressive Widening really explores combinatorial space
+
+<p align="center">
+  <img src="assets/depth_distribution.png" alt="Mutation depth distribution across rounds" width="75%">
+</p>
+
+- R0–R5 are dominated by 1–2-mutation sequences (standard MCTS struggles to go deep under huge branching factors).
+- R7–R8, after enabling Progressive Widening and `DEPTH_QUOTA`, stably output **3–4-mutation** combinations, proving that the search truly enters the combinatorial regime rather than just tweaking single sites.
+
+### 4. Combination mutants clearly outperform single / double mutants
+
+<p align="center">
+  <img src="assets/fitness_by_depth.png" alt="Fitness by mutation depth" width="60%">
+</p>
+
+- 1- and 2-mutation sequences have mean predicted fitness around **0.02**.
+- 3- and 4-mutation sequences reach mean predicted fitness around **0.075**, demonstrating that exploring deeper combinations is empirically worthwhile — not just stacking a few independent single-site improvements.
+
+### 5. Continuous discovery of better combinations: Discovery Curve
+
+<p align="center">
+  <img src="assets/cumulative_best.png" alt="Cumulative best fitness over rounds" width="80%">
+</p>
+
+- The step curve tracks the **best-seen predicted fitness** after each round.
+- Early rounds are dominated by double mutants (e.g. `S86R+D1M`), while later rounds discover more complex high-order combinations such as **`E77P+E226P+D1M+R310L`**, which significantly raise the global optimum.
+
+### 6. ESM-1v provides a strong prior for early rounds
+
+<p align="center">
+  <img src="assets/esm1v_vs_fitness.png" alt="ESM-1v score vs predicted fitness" width="60%">
+</p>
+
+- ESM-1v additive LLR correlates well with the proxy fitness (R² ≈ 0.64), showing that ESM-1v gives a reliable prior for which mutations are promising.
+- In Rounds 0–1, even before any real wet-lab measurements, ESM-1v alone is enough to propose useful candidates and bootstrap the active-learning loop.
+
 ## How it works
 
 ```
