@@ -32,6 +32,11 @@ SEQUENCES_PER_ROUND = 20
 TOP_K_LEADERBOARD = 10
 OUTPUT_DIR = "output"
 
+# Minimum sequences per mutation depth to guarantee diversity.
+# Remaining slots (SEQUENCES_PER_ROUND minus sum) are filled by best overall.
+# If a depth can't fill its quota (e.g. deduplication), slots redistribute.
+DEPTH_QUOTA = {1: 3, 2: 4, 3: 4, 4: 4}
+
 # ── Candidate selection ─────────────────────────────────────────────────────
 CANDIDATE_PER_POSITION = 3
 DIVERSITY_WINDOW = 10

@@ -18,6 +18,7 @@ from config import (
     PW_K,
     PW_ALPHA,
     SEQUENCES_PER_ROUND,
+    DEPTH_QUOTA,
     gpr_alpha,
 )
 from esm_models import embed_sequence
@@ -262,13 +263,17 @@ def run_mcts(
         if n_dup > 0:
             print(f"[MCTS] Filtered out {n_dup} previously proposed sequences.")
 
-    selected = _diverse_select(scored, sequences_to_return, min_hamming=2)
+    selected = _depth_diverse_select(scored, sequences_to_return, min_hamming=2)
 
+    sel_depths = Counter(s["depth"] for s in selected)
     print(f"[MCTS] Search complete. Selected {len(selected)} sequences from "
           f"{len(scored)} candidates.")
-    print(f"[MCTS] Depth distribution: "
+    print(f"[MCTS] Tree depth distribution: "
           + ", ".join(f"depth {d}: {depth_counts.get(d, 0)} nodes"
                       for d in range(1, MAX_DEPTH + 1)))
+    print(f"[MCTS] Output depth distribution: "
+          + ", ".join(f"{d}-mut: {sel_depths.get(d, 0)}"
+                      for d in sorted(sel_depths)))
 
     return selected
 
@@ -279,30 +284,64 @@ def _collect_nodes(node: MCTSNode, result: List[MCTSNode]):
         _collect_nodes(child, result)
 
 
-def _diverse_select(
+def _depth_diverse_select(
     candidates: List[Dict],
     k: int,
     min_hamming: int = 2,
 ) -> List[Dict]:
-    """Greedily pick *k* sequences ensuring pairwise Hamming distance >= *min_hamming*."""
+    """Select *k* sequences with guaranteed depth diversity.
+
+    1. For each depth in DEPTH_QUOTA, greedily pick up to the quota
+       (respecting Hamming distance against already-selected sequences).
+    2. Fill remaining slots from all leftover candidates by combined_score.
+    3. If still short, relax the Hamming constraint for remaining slots.
+    """
     if len(candidates) <= k:
         return candidates
 
+    by_depth: Dict[int, List[Dict]] = {}
+    for c in candidates:
+        by_depth.setdefault(c["depth"], []).append(c)
+
     selected: List[Dict] = []
-    for cand in candidates:
-        if len(selected) >= k:
-            break
+    used_seqs: set = set()
+
+    def _try_add(cand: Dict) -> bool:
         seq = cand["sequence"]
+        if seq in used_seqs:
+            return False
         if all(_hamming(seq, s["sequence"]) >= min_hamming for s in selected):
             selected.append(cand)
+            used_seqs.add(seq)
+            return True
+        return False
 
+    # Phase 1: fill depth quotas
+    for depth in sorted(DEPTH_QUOTA.keys()):
+        quota = DEPTH_QUOTA[depth]
+        pool = by_depth.get(depth, [])
+        added = 0
+        for cand in pool:
+            if added >= quota or len(selected) >= k:
+                break
+            if _try_add(cand):
+                added += 1
+
+    # Phase 2: fill remaining slots from all candidates by combined_score
     if len(selected) < k:
-        selected_seqs = {s["sequence"] for s in selected}
         for cand in candidates:
             if len(selected) >= k:
                 break
-            if cand["sequence"] not in selected_seqs:
+            _try_add(cand)
+
+    # Phase 3: relax Hamming if still short
+    if len(selected) < k:
+        for cand in candidates:
+            if len(selected) >= k:
+                break
+            seq = cand["sequence"]
+            if seq not in used_seqs:
                 selected.append(cand)
-                selected_seqs.add(cand["sequence"])
+                used_seqs.add(seq)
 
     return selected
