@@ -64,7 +64,7 @@ The following figures come from a 9-round **in silico** campaign where the `fitn
 </p>
 
 - Blue boxes (R0–R5, standard MCTS) are wide and low, with many sequences near zero.
-- Red boxes (R7–R8, Progressive Widening + depth quotas) are higher and tighter, indicating that MCTSevo consistently proposes higher-quality multi-mutation sequences.
+- Red boxes (R6–R8, Progressive Widening + depth quotas) are higher and tighter, indicating that MCTSevo consistently proposes higher-quality multi-mutation sequences.
 
 ### 3. MCTS + Progressive Widening really explores combinatorial space
 
@@ -73,7 +73,7 @@ The following figures come from a 9-round **in silico** campaign where the `fitn
 </p>
 
 - R0–R5 are dominated by 1–2-mutation sequences (standard MCTS struggles to go deep under huge branching factors).
-- R7–R8, after enabling Progressive Widening and `DEPTH_QUOTA`, stably output **3–4-mutation** combinations, proving that the search truly enters the combinatorial regime rather than just tweaking single sites.
+- R6–R8, after enabling Progressive Widening and `DEPTH_QUOTA`, stably output **3–4-mutation** combinations, proving that the search truly enters the combinatorial regime rather than just tweaking single sites.
 
 ### 4. Combination mutants clearly outperform single / double mutants
 
