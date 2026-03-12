@@ -6,9 +6,13 @@ MCTSevo treats the protein mutation landscape as a **search tree** and applies M
 
 ## Why MCTSevo?
 
-Most ML-guided directed evolution tools (e.g., [EVOLVEpro](https://github.com/mat10d/evolvepro)) follow a **greedy paradigm**: embed sequences, train a regression model on experimental data, predict the best single mutations, then combine top hits. This is fast, but fundamentally limited — greedy combination misses **epistatic interactions** where mutations are individually neutral but synergistic together.
+Most ML-guided directed evolution tools (e.g., [EVOLVEpro](https://github.com/mat10d/evolvepro)) follow a **greedy paradigm**: embed sequences, train a regression model on experimental data, predict the best single mutations, then combine top hits. This is fast, but fundamentally limited:
 
-MCTSevo takes a different approach:
+- **Greedy combination assumes additivity.** Selecting A→V and G→L independently, then combining them into A→V+G→L, implicitly assumes their effects are additive. But in reality, protein fitness landscapes are riddled with **epistasis** — mutations that are individually neutral or even harmful can become strongly beneficial in combination, and vice versa. A greedy strategy is structurally blind to these non-additive synergies.
+
+- **The combinatorial space is left unexplored.** For a 300-residue protein with 20 candidate mutations, there are ~190 possible double mutations, ~1,140 triples, and ~4,845 quadruples. Greedy methods evaluate only a fraction of these. The best multi-mutation combination is almost certainly not the sum of the best single mutations.
+
+MCTSevo addresses this directly — it **evaluates full mutation combinations as complete sequences**, not as sums of individual effects, and uses tree search to navigate the enormous combinatorial space efficiently:
 
 ### vs. EVOLVEpro and similar tools
 
@@ -16,7 +20,7 @@ MCTSevo takes a different approach:
 |---|---|---|
 | **Search strategy** | Greedy: predict best single mutations, combine top hits | MCTS: systematically explore combinatorial space with UCB |
 | **Combinatorial mutations** | Post-hoc combination of individual winners | Native tree search over multi-mutation paths (up to 5 simultaneous) |
-| **Epistasis handling** | Limited — assumes additive effects when combining | Evaluates full combinations directly, can discover non-additive synergies |
+| **Epistasis handling** | Assumes additive effects when combining top singles | Each node is a **complete sequence** — epistatic interactions are captured natively |
 | **Zero-shot capability** | Requires initial experimental data | Round 0 produces meaningful proposals via ESM-1v LLR alone |
 | **PLM usage** | ESM-2 embeddings → Random Forest | ESM-1v (evolutionary prior) + ESM-2 (GPR features) — dual-model architecture |
 | **Exploration vs. exploitation** | Relies on model uncertainty | Principled UCB formula with mathematical convergence guarantees |
@@ -26,7 +30,9 @@ MCTSevo takes a different approach:
 
 ### Key advantages
 
-- **Combinatorial from day one.** Each round proposes sequences spanning 1 to 4+ simultaneous mutations, building baseline understanding of individual effects while also exploring deep combinations.
+- **Epistasis-aware combinatorial search.** The fundamental difference: MCTSevo does not decompose multi-mutation fitness into a sum of single-mutation effects. Each tree node represents a **complete mutant sequence**, and the value function (ESM-1v + GPR) evaluates the full sequence as a whole. If mutations A and B are individually neutral but together create a new hydrogen bond, MCTSevo can discover this — a greedy "top singles" strategy cannot.
+
+- **Combinatorial from day one.** Each round proposes sequences spanning 1 to 4+ simultaneous mutations, building baseline understanding of individual effects while also exploring deep synergistic combinations that greedy approaches would miss entirely.
 
 - **No cold-start problem.** ESM-1v masked-marginal scoring provides a strong evolutionary prior before any experiments are run. You get informative proposals from Round 0.
 
@@ -34,7 +40,7 @@ MCTSevo takes a different approach:
 
 - **Principled exploration.** The UCB formula mathematically balances trying untested mutation paths against refining known promising ones — no ad-hoc acquisition function needed.
 
-- **Dual-model scoring.** ESM-1v provides evolutionary plausibility; GPR learns the specific fitness landscape from your data. The blend automatically shifts from ESM-1v-dominant (early rounds) to GPR-dominant (later rounds) as data accumulates.
+- **Dual-model scoring.** ESM-1v provides evolutionary plausibility; GPR learns the specific fitness landscape from your data. The blend automatically shifts from ESM-1v-dominant (early rounds) to GPR-dominant (later rounds) as data accumulates. GPR also captures epistatic patterns — as experimental data grows, the model learns which mutation **combinations** (not just individual mutations) lead to improved fitness.
 
 - **Runs anywhere.** Apple Silicon (MPS), NVIDIA GPU (CUDA), or CPU. No cloud API, no cluster, no pre-computed embeddings. Just `pip install` and go.
 
