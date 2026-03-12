@@ -68,7 +68,9 @@ MCTSevo addresses this directly — it **evaluates full mutation combinations as
 2. **Diversified candidate selection** — High-LLR mutations are selected across different positions (window-based + global top-N) to form the MCTS action space.
 3. **MCTS with Progressive Widening** — Explores combinatorial mutations using UCB:
 
-$$\text{UCB} = \frac{\text{Value}}{\text{Visits}} + C \cdot \sqrt{\frac{2 \ln(\text{Parent\_Visits})}{\text{Visits}}}$$
+```
+UCB = Value/Visits + C × √( 2 × ln(Parent_Visits) / Visits )
+```
 
 4. **GPR fitness prediction** — ESM-2 embeddings are mapped to wet-lab fitness via Gaussian Process Regression. The GPR prediction is blended with ESM-1v as a composite node value.
 5. **Depth-diverse output** — Each round outputs 20 sequences with guaranteed representation across mutation depths (single, double, triple, quadruple), plus automatic deduplication against all previous rounds.
