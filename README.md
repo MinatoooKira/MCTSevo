@@ -64,7 +64,14 @@ MCTSevo addresses this directly — it **evaluates full mutation combinations as
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-1. **ESM-1v masked-marginal scoring** — Every possible single-residue mutation is scored via log-likelihood ratio (LLR), producing a full-sequence heatmap.
+1. **ESM-1v masked-marginal scoring** — Every possible single-residue mutation is scored via log-likelihood ratio (LLR), producing a full-sequence heatmap:
+
+<p align="center">
+  <img src="assets/llr_heatmap_example.png" alt="ESM-1v LLR Heatmap Example" width="100%">
+</p>
+
+> *Example LLR heatmap: rows are the 20 amino acids, columns are sequence positions. Red = beneficial mutation (positive LLR), blue = deleterious. Black squares mark wild-type residues; green circles highlight selected candidate mutations for MCTS.*
+
 2. **Diversified candidate selection** — High-LLR mutations are selected across different positions (window-based + global top-N) to form the MCTS action space.
 3. **MCTS with Progressive Widening** — Explores combinatorial mutations using UCB:
 
